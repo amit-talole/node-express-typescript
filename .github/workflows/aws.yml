@@ -18,30 +18,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v3
 
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
+    - name: dockerhub login
+      uses: docker/login-action@v1
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-
-    - name: Build, tag, and push image to Amazon ECR
-      id: build-image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: nodejs
-        IMAGE_TAG: ${{ github.sha }}
-      run: |
-        # Build a docker container and
-        # push it to ECR so that it can
-        # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build the Docker image
+      with:
+        context: .
+        push: true
+        tags: talole84/nodejs:${{ github.sha }}
 
     - name: Deploy to Amazon EC2
       env:
@@ -54,15 +41,8 @@ jobs:
        host: ${{ secrets.SERVER_PUBLIC_IP }}
        username: ubuntu
        key: ${{ secrets.AWS_SSH_KEY_PRIVATE }}
-      #  password: Amit@2423
-       port: ${{ secrets.PORT }}
-       envs: PUBLIC_SSH_KEY, PRIVATE_SSH_KEY,ECR_REGISTRY,ECR_REPOSITORY,IMAGE_TAG,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_DEFAULT_REGION,AWS_REGION
        scripts: |-
-         sudo apt update
-         sudo apt install docker.io -y
-         sudo apt install awscli -y
-         sudo $(aws ecr get-login --no-include-email --region ap-south-1);
-         sudo docker stop myappcontainer || true
-         sudo docker rm myappcontainer || true
-         sudo docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-         sudo docker run --d --name myappcontainer -p 80:3000 $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+         sudo docker stop nodejs || true
+         sudo docker rm nodejs || true
+         sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs:${{ github.sha }}
+         sudo docker run --d --name nodejs -p 80:3000 ${{ secrets.DOCKER_USERNAME }}/nodejs:${{ github.sha }}
