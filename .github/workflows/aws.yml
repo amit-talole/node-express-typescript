@@ -34,17 +34,17 @@ jobs:
 
 
     - name: Deploy to Amazon EC2
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        ECR_REPOSITORY: nodejs
-        IMAGE_TAG: ${{ github.sha }}
-        AWS_DEFAULT_REGION: ap-south-1
+      # env:
+      #   ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #   ECR_REPOSITORY: nodejs
+      #   IMAGE_TAG: ${{ github.sha }}
+      #   AWS_DEFAULT_REGION: ap-south-1
       uses: appleboy/ssh-action@v0.1.10
       with: 
        host: ${{ secrets.SERVER_PUBLIC_IP }}
        username: ubuntu
        key: ${{ secrets.AWS_SSH_KEY_PRIVATE }}
-       scripts: |-
+       scripts: |
          sudo docker stop nodejs || true
          sudo docker rm nodejs || true
          sudo docker pull ${{ secrets.DOCKER_USERNAME }}/nodejs:${{ github.sha }}
