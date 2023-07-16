@@ -24,11 +24,14 @@ jobs:
          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     
+
     - name: Build the Docker image
+      uses: docker/build-push-action@v2
       with:
         context: .
         push: true
         tags: talole84/nodejs:${{ github.sha }}
+
 
     - name: Deploy to Amazon EC2
       env:
